@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(HashMapProject
     src/main.cpp
+    src/HashMap.cpp
 )
 
 target_include_directories(HashMapProject PRIVATE include)

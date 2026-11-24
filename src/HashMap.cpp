@@ -1,6 +1,6 @@
 #include "HashMap.h"
+#include <iostream>
 
-// Converts a student ID into a bucket index.
 int HashMap::hashFunction(int key)
 {
     return key % TABLE_SIZE;
@@ -20,33 +20,49 @@ void HashMap::insert(int key, std::string value)
     }
 
     table[index].push_back({ key, value });
+}
 
+std::string HashMap::search(int key)
+{
+    int index = hashFunction(key);
 
-    std::string HashMap::search(int key)
+    for (auto& entry : table[index])
     {
-        int index = hashFunction(key);
-
-        for (auto& entry : table[index])
+        if (entry.first == key)
         {
-            if (entry.first == key)
-            {
-                return entry.second;
-            }
-        }
-
-        return "Student not found";
-    }
-
-    void HashMap::remove(int key)
-    {
-        int index = hashFunction(key);
-
-        for (auto it = table[index].begin(); it != table[index].end(); ++it)
-        {
-            if (it->first == key)
-            {
-                table[index].erase(it);
-                return;
-            }
+            return entry.second;
         }
     }
+
+    return "Student not found";
+}
+
+void HashMap::remove(int key)
+{
+    int index = hashFunction(key);
+
+    for (auto it = table[index].begin(); it != table[index].end(); ++it)
+    {
+        if (it->first == key)
+        {
+            table[index].erase(it);
+            return;
+        }
+    }
+}
+
+void HashMap::display()
+{
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        std::cout << "Bucket " << i << ": ";
+
+        for (auto& entry : table[i])
+        {
+            std::cout << "[" << entry.first << ", "
+                << entry.second << "] -> ";
+        }
+
+        std::cout << "NULL" << std::endl;
+    }
+}
