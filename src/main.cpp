@@ -29,5 +29,10 @@ int main()
     std::cout << "\nHash Map after removing student 103:" << std::endl;
     students.display();
 
+    students.remove(111);
+
+    std::cout << "\nAfter removing student 111:" << std::endl;
+    students.display();
+
     return 0;
 }
