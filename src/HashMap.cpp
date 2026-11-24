@@ -20,4 +20,33 @@ void HashMap::insert(int key, std::string value)
     }
 
     table[index].push_back({ key, value });
-}
+
+
+    std::string HashMap::search(int key)
+    {
+        int index = hashFunction(key);
+
+        for (auto& entry : table[index])
+        {
+            if (entry.first == key)
+            {
+                return entry.second;
+            }
+        }
+
+        return "Student not found";
+    }
+
+    void HashMap::remove(int key)
+    {
+        int index = hashFunction(key);
+
+        for (auto it = table[index].begin(); it != table[index].end(); ++it)
+        {
+            if (it->first == key)
+            {
+                table[index].erase(it);
+                return;
+            }
+        }
+    }
