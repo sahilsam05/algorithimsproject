@@ -1,26 +1,43 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
-#include <string>
+#include <cstddef>
 #include <list>
+#include <string>
 #include <utility>
+#include <vector>
+
 
 class HashMap
 {
 private:
-    static const int TABLE_SIZE = 10;
+    
+    std::vector<std::list<std::pair<int, std::string>>> table;
 
-    // Each bucket stores key-value pairs.
-    std::list<std::pair<int, std::string>> table[TABLE_SIZE];
+    std::size_t count = 0;      
+    bool autoResize;            
 
-    // Converts a key into a bucket index.
-    int hashFunction(int key);
+    
+    static constexpr double MAX_LOAD_FACTOR = 1.0;
+
+    std::size_t hashFunction(int key) const;
+
+    void rehash(std::size_t newBucketCount);
 
 public:
-    void insert(int key, std::string value);
-    std::string search(int key);
-    void remove(int key);
-    void display();
+    
+    explicit HashMap(std::size_t initialBuckets = 10, bool autoResize = true);
+
+    void insert(int key, const std::string& value);  
+    std::string search(int key) const;               
+    bool contains(int key) const;
+    bool remove(int key);                            
+    void display() const;
+
+    std::size_t size() const;
+    std::size_t bucketCount() const;
+    double loadFactor() const;
+    std::size_t longestBucket() const;
 };
 
 #endif
