@@ -2,14 +2,6 @@
 
 [← Back to README](README.md)
 
-## Contents
-1. [The problem](#1-the-problem)
-2. [What a hash map is](#2-what-a-hash-map-is)
-3. [Real-world use-cases](#3-real-world-use-cases)
-4. [When to use a hash map (and when not to)](#4-when-to-use-a-hash-map-and-when-not-to)
-5. [Why we chose this topic](#5-why-we-chose-this-topic)
-6. [Scope of this project](#6-scope-of-this-project)
-
 ---
 
 ## 1. The problem
