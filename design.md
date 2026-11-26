@@ -1,8 +1,8 @@
-Design – Hashing and Hash Maps
+# Design – Hashing and Hash Maps
 
 ## 1. Introduction
 
-For our project, we decided to create a Hash Map using C++. We chose a student database as our example because it is an easy way to show how a Hash Map works.
+For our project, we decided to create a Hash Map using C++. We chose a student database as our example because it is a simple way to demonstrate how a Hash Map works.
 
 Our Hash Map stores student IDs and their names. Each student ID is used as a key, and the student's name is the value.
 
@@ -15,26 +15,26 @@ For example:
 | 103 | Ewan |
 | 104 | Aman |
 
-The main idea is to make it easier and quicker to find student information instead of searching through a normal list one by one.
+The main idea is to make it quicker to find student information without having to search through every record one by one.
 
 ## 2. How Our Hash Function Works
 
-A hash function takes a key and works out where it should be stored in the Hash Map.
+A hash function takes a key and works out which bucket it should be stored in.
 
-In our project, we used the modulo operator (`%`) to calculate the position.
+In our project, we use the modulo operator (`%`) to calculate the bucket number.
 
 This is the code from our `HashMap.cpp` file:
 
 ```cpp
-int HashMap::hashFunction(int key)
+std::size_t HashMap::hashFunction(int key) const
 {
-    return key % TABLE_SIZE;
+    return static_cast<unsigned int>(key) % table.size();
 }
 ```
 
-Our Hash Map has 10 buckets, so we divide the student ID by 10 and use the remainder to decide which bucket it goes into.
+Our Hash Map starts with 10 buckets by default. The modulo operator calculates the remainder, which is used as the bucket index.
 
-For example:
+For example, when there are 10 buckets:
 
 - 101 % 10 = 1
 - 102 % 10 = 2
@@ -45,23 +45,27 @@ This means student 101 goes into bucket 1, student 102 goes into bucket 2, and s
 
 ## 3. How We Store the Data
 
-We created an array with 10 buckets. Each bucket can store student information.
+We use a `std::vector` containing linked lists to store the student information.
 
-In our `HashMap.h` file, we used:
+This is declared in our `HashMap.h` file:
 
 ```cpp
-static const int TABLE_SIZE = 10;
-
-std::list<std::pair<int, std::string>> table[TABLE_SIZE];
+std::vector<std::list<std::pair<int, std::string>>> table;
 ```
 
-We used `std::list` so that more than one student can be stored in the same bucket if needed.
+The vector contains the buckets, and each bucket uses a `std::list` to store student records.
 
-Each student record contains two things:
+Each student record contains:
 - Their student ID.
 - Their name.
 
-This is important because sometimes two different student IDs can end up in the same bucket.
+We chose this structure because it allows us to store multiple students in the same bucket if a collision happens.
+
+We also use a counter to keep track of how many student records are stored:
+
+```cpp
+std::size_t count = 0;
+```
 
 ## 4. Handling Collisions
 
@@ -72,13 +76,13 @@ For example:
 - 101 % 10 = 1
 - 111 % 10 = 1
 
-Both students end up in bucket 1.
+Both student IDs go into bucket 1.
 
-To deal with this, we used something called **separate chaining**.
+To handle this, we use **separate chaining**.
 
-This means that instead of replacing the first student, we store both students in a linked list inside the same bucket.
+Instead of replacing the first student, we store both students in a linked list inside the same bucket.
 
-Here is an example of what our Hash Map looks like when a collision happens:
+For example:
 
 ```text
 Bucket 0: NULL
@@ -98,47 +102,103 @@ Bucket 8: NULL
 Bucket 9: NULL
 ```
 
-As you can see, both students are stored in bucket 1. Neither student's information is lost.
+Both students are stored in bucket 1, so neither student's information is lost.
 
 We tested this in our program by inserting student IDs 101 and 111.
 
-## 5. Main Functions of Our Hash Map
+## 5. Load Factor and Automatic Resizing
 
-Our program has four main functions.
+One improvement we made to our Hash Map was adding automatic resizing.
+
+The load factor measures how many records are stored compared with the number of buckets.
+
+We calculate it using:
+
+```cpp
+double HashMap::loadFactor() const
+{
+    return static_cast<double>(count) /
+           static_cast<double>(table.size());
+}
+```
+
+For example, if we have 10 students and 10 buckets, the load factor is 1.0.
+
+In our implementation, the maximum load factor is set to 1.0.
+
+When a new student is inserted and the load factor becomes greater than 1.0, the Hash Map automatically doubles the number of buckets.
+
+For example:
+
+```text
+10 buckets
+     |
+Insert another student
+     |
+Load factor becomes greater than 1.0
+     |
+Hash Map doubles its bucket count
+     |
+20 buckets
+```
+
+This helps prevent the buckets from becoming too full as more students are added.
+
+When resizing happens, we also need to move the existing records into their new bucket positions. This process is called **rehashing**.
+
+## 6. Main Functions of Our Hash Map
+
+Our program includes several functions to manage the student records.
 
 ### Insert
 
-The insert function is used to add a new student to the Hash Map.
+The insert function adds a new student to the Hash Map.
 
-It takes the student's ID and name, calculates which bucket they belong in and stores their information.
+It calculates the correct bucket and checks whether the student ID already exists.
 
-We also added a check for duplicate IDs. If the ID already exists, the program updates the student's name instead of adding another entry.
+If the ID already exists, it updates the student's name. Otherwise, it adds a new record.
+
+It also checks the load factor to see whether the Hash Map needs to resize.
 
 ### Search
 
-The search function allows us to find a student using their ID.
+The search function finds a student using their ID.
 
-It calculates the correct bucket and looks through the entries stored there.
+It calculates the correct bucket and searches through the records stored there.
 
-If the student is found, it returns their name. If not, it displays "Student not found".
+If the student is found, it returns their name. If not, it returns "Student not found".
 
 ### Remove
 
-The remove function allows us to delete a student using their ID.
+The remove function deletes a student using their ID.
 
-It finds the correct bucket, searches for the student and removes their record.
+It finds the correct bucket and searches for the matching record. If the student exists, it removes them and updates the record count.
 
-We also tested removing one student from a bucket containing a collision. The other student's information remained there.
+### Contains
+
+The contains function checks whether a student ID exists in the Hash Map.
+
+It returns `true` if the ID is found and `false` if it is not.
 
 ### Display
 
-The display function shows all 10 buckets and the students stored inside them.
+The display function prints all the buckets and the student records stored inside them.
 
-We used this function to see how the information is organised and to check that collisions were working correctly.
+We use this to see how the data is organised and how collisions are handled.
 
-## 6. How Inserting a Student Works
+### Other Functions
 
-The diagram below shows the steps our program follows when a new student is added.
+We also added functions to return:
+- The number of student records (`size()`).
+- The number of buckets (`bucketCount()`).
+- The current load factor (`loadFactor()`).
+- The length of the longest bucket (`longestBucket()`).
+
+These functions help us understand how full the Hash Map is and how records are distributed.
+
+## 7. How Inserting a Student Works
+
+The diagram below shows the steps our program follows when a student is inserted.
 
 ```mermaid
 flowchart TD
@@ -147,21 +207,28 @@ flowchart TD
     C --> D{Does Student ID Exist?}
     D -->|Yes| E[Update Student Name]
     D -->|No| F[Add Student to Bucket]
-    E --> G[Finish]
-    F --> G
+    F --> G{Load Factor Greater Than 1.0?}
+    G -->|Yes| H[Double Bucket Count]
+    H --> I[Rehash Existing Records]
+    G -->|No| J[Finish]
+    E --> J
+    I --> J
 ```
 
-For example, if we insert student ID 105, the program calculates:
+For example, if we insert student ID 105 while there are 10 buckets, the program calculates:
 
 105 % 10 = 5
 
-The student will then be stored in bucket 5.
+The student will be stored in bucket 5.
 
-## 7. Conclusion
+If inserting the student causes the load factor to exceed 1.0, the Hash Map will resize and redistribute the records.
 
-Overall, we created a Hash Map that stores student IDs and names using a simple hash function.
+## 8. Conclusion
 
-We used separate chaining to handle collisions, which allows multiple students to be stored in the same bucket.
+Overall, we created a Hash Map in C++ that stores student IDs and names.
 
-Our program can insert, search, remove and display student records. We also tested collisions and duplicate student IDs to make sure the program works as expected.
-   
+We used separate chaining to handle collisions and added automatic resizing to help manage the number of records as the Hash Map grows.
+
+Our implementation supports inserting, searching, removing and displaying student records. We also added extra functions to check the size, bucket count and load factor.
+
+These features allowed us to explore how Hash Maps work and understand how their performance can be affected by collisions and the number of buckets.
