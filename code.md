@@ -1,82 +1,81 @@
-Code – Hashing and Hash Maps
+# Code – Hashing and Hash Maps
 
-1. Introduction
+## 1. Introduction
 
 For this project, we used C++ to create a Hash Map that stores student IDs and student names.
 
-We split the code into different files to keep everything organised:
+We split the code into different files to keep everything organised and easier to understand.
 
-main.cpp – Runs the program and tests the Hash Map.
+Our project contains:
 
-HashMap.h – Contains the HashMap class and its function declarations.
-
-HashMap.cpp – Contains the code for the Hash Map functions.
+- `HashMap.h` – Contains the HashMap class and function declarations.
+- `HashMap.cpp` – Contains the actual code for the Hash Map functions.
+- `main.cpp` – Runs the program and demonstrates how the Hash Map works.
+- `tests.cpp` – Contains tests for checking the different functions.
+- `benchmark.cpp` – Used to measure and compare performance.
 
 We also used CMake to build the project.
 
-2. Header File (HashMap.h)
+## 2. Header File (HashMap.h)
 
-The HashMap.h file contains the HashMap class. It declares the functions that we use in the program.
+The `HashMap.h` file contains our HashMap class.
 
-#ifndef HASHMAP_H
-#define HASHMAP_H
+It declares the functions and variables that are used throughout the project.
 
-#include <string>
-#include <list>
-#include <utility>
+Our main storage structure is:
 
-class HashMap
-{
-private:
-    static const int TABLE_SIZE = 10;
+```cpp
+std::vector<std::list<std::pair<int, std::string>>> table;
+```
 
-    std::list<std::pair<int, std::string>> table[TABLE_SIZE];
+We use a vector to store the buckets and a linked list inside each bucket.
 
-    int hashFunction(int key);
+Each entry is a pair containing a student ID and a name.
 
-public:
-    void insert(int key, std::string value);
-    std::string search(int key);
-    void remove(int key);
-    void display();
-};
+We also use a counter to keep track of how many records are stored:
 
-#endif
+```cpp
+std::size_t count = 0;
+```
 
-We set the table size to 10, meaning our Hash Map has 10 buckets.
+The class includes functions for inserting, searching, removing and displaying student records.
 
-We used std::list to store the student information in each bucket. Each student is stored as a pair containing an ID and a name.
+It also includes additional functions for checking the size, bucket count, load factor and longest bucket.
 
-The functions are declared here and their actual code is written in HashMap.cpp.
-
-3. Hash Function
+## 3. Hash Function
 
 The hash function takes a student ID and calculates which bucket it should go into.
 
-int HashMap::hashFunction(int key)
+This is the code from our `HashMap.cpp` file:
+
+```cpp
+std::size_t HashMap::hashFunction(int key) const
 {
-    return key % TABLE_SIZE;
+    return static_cast<unsigned int>(key) % table.size();
 }
+```
 
-We used the modulo operator % to calculate the bucket number.
+We use the modulo operator `%` to calculate the bucket number.
 
-For example:
+For example, if we have 10 buckets:
 
-101 % 10 = 1
+- 101 % 10 = 1
+- 102 % 10 = 2
+- 103 % 10 = 3
+- 111 % 10 = 1
 
-102 % 10 = 2
+This means student IDs 101 and 111 both go into bucket 1.
 
-111 % 10 = 1
+This creates a collision, which our program handles using separate chaining.
 
-This means student IDs 101 and 111 both go into bucket 1. This creates a collision, which we handle using separate chaining.
-
-4. Insert Function
+## 4. Insert Function
 
 The insert function adds a new student to the Hash Map.
 
-void HashMap::insert(int key, std::string value)
+```cpp
+void HashMap::insert(int key, const std::string& value)
 {
-    int index = hashFunction(key);
+    std::size_t index = hashFunction(key);
 
     for (auto& entry : table[index])
     {
@@ -88,25 +87,33 @@ void HashMap::insert(int key, std::string value)
     }
 
     table[index].push_back({ key, value });
+    ++count;
+
+    if (autoResize && loadFactor() > MAX_LOAD_FACTOR)
+    {
+        rehash(table.size() * 2);
+    }
 }
+```
 
 First, the function calculates the correct bucket using the hash function.
 
-It then checks whether the student ID already exists in that bucket.
+It then checks whether the student ID already exists.
 
-If the ID already exists, it updates the student's name. Otherwise, it adds the new student to the bucket.
+If the ID already exists, it updates the student's name. Otherwise, it adds a new record and increases the record count.
 
-This also means we do not store the same student ID twice.
+Finally, it checks the load factor. If the load factor is greater than 1.0 and automatic resizing is enabled, the Hash Map doubles its bucket count.
 
-5. Search Function
+## 5. Search Function
 
 The search function looks for a student using their ID.
 
-std::string HashMap::search(int key)
+```cpp
+std::string HashMap::search(int key) const
 {
-    int index = hashFunction(key);
+    std::size_t index = hashFunction(key);
 
-    for (auto& entry : table[index])
+    for (const auto& entry : table[index])
     {
         if (entry.first == key)
         {
@@ -116,20 +123,22 @@ std::string HashMap::search(int key)
 
     return "Student not found";
 }
+```
 
-The function first works out which bucket the student should be in.
+The function calculates which bucket the student should be in.
 
-It then checks the entries in that bucket. If the ID is found, it returns the student's name.
+It then searches through the entries in that bucket.
 
-If the ID does not exist, it returns "Student not found".
+If the student ID is found, it returns their name. If the ID does not exist, it returns `"Student not found"`.
 
-6. Remove Function
+## 6. Remove Function
 
-The remove function deletes a student from the Hash Map using their ID.
+The remove function deletes a student using their ID.
 
-void HashMap::remove(int key)
+```cpp
+bool HashMap::remove(int key)
 {
-    int index = hashFunction(key);
+    std::size_t index = hashFunction(key);
 
     for (auto it = table[index].begin();
          it != table[index].end(); ++it)
@@ -137,78 +146,139 @@ void HashMap::remove(int key)
         if (it->first == key)
         {
             table[index].erase(it);
-            return;
+            --count;
+            return true;
         }
     }
+
+    return false;
 }
+```
 
-The function finds the correct bucket and searches through its entries.
+The function finds the correct bucket and searches for the matching student ID.
 
-When it finds the matching student ID, it removes that entry from the list.
+If the student is found, it removes the record and decreases the total count.
 
-This is useful when we want to delete a student without affecting other students in the same bucket.
+It returns `true` if the student was removed and `false` if the ID was not found.
 
-7. Display Function
+## 7. Automatic Resizing and Rehashing
 
-We also created a display function to show what is stored in the Hash Map.
+One of the improvements we made was adding automatic resizing.
 
-void HashMap::display()
+We use the load factor to measure how full the Hash Map is.
+
+```cpp
+double HashMap::loadFactor() const
 {
-    for (int i = 0; i < TABLE_SIZE; i++)
-    {
-        std::cout << "Bucket " << i << ": ";
-
-        for (auto& entry : table[i])
-        {
-            std::cout << "[" << entry.first << ", "
-                      << entry.second << "] -> ";
-        }
-
-        std::cout << "NULL" << std::endl;
-    }
+    return static_cast<double>(count) /
+           static_cast<double>(table.size());
 }
+```
 
-This function goes through all 10 buckets and prints the students stored in each one.
+Our maximum load factor is set to 1.0.
 
-It also helps us see how collisions work because multiple students can appear in the same bucket.
+When the load factor goes above 1.0, the Hash Map doubles its bucket count.
 
-8. Building and Running the Project
+We use the `rehash()` function to move the existing records into their new bucket positions.
 
-We used CMake to build our project.
+This is important because changing the number of buckets also changes the results of the hash function.
 
-The CMakeLists.txt file tells CMake which source files to include when building the program.
+By resizing the Hash Map, we can reduce the average number of records stored in each bucket as more students are added.
 
-To build and run the project from the terminal, we can use:
+## 8. Other Functions
 
+We also added some extra functions to help manage and understand the Hash Map.
+
+- `contains()` checks whether a student ID exists and returns true or false.
+- `size()` returns the total number of student records.
+- `bucketCount()` returns the current number of buckets.
+- `loadFactor()` calculates how full the Hash Map is.
+- `longestBucket()` returns the number of entries in the bucket containing the most records.
+- `display()` prints all the buckets and the student records stored inside them.
+
+These functions help us check how the Hash Map is performing and how the records are distributed.
+
+## 9. Main Program
+
+The `main.cpp` file demonstrates how our Hash Map works.
+
+We create a Hash Map and insert several student records.
+
+We then demonstrate searching for students, updating an existing student record and removing students.
+
+We also display the Hash Map so we can see how the records are organised into buckets.
+
+For example, we insert student IDs 101 and 111 to demonstrate how collisions are handled.
+
+## 10. Testing
+
+We created a separate `tests.cpp` file to test our Hash Map.
+
+The tests check different situations, including:
+
+- Inserting student records.
+- Searching for existing and missing IDs.
+- Removing records.
+- Handling collisions.
+- Updating duplicate IDs.
+- Checking the size of the Hash Map.
+- Checking the load factor.
+- Testing automatic resizing.
+- Checking the longest bucket.
+
+This helped us make sure the different functions were working correctly.
+
+## 11. Performance Benchmark
+
+We also created a separate `benchmark.cpp` file.
+
+The purpose of this file is to measure how our Hash Map performs and compare it with other C++ data structures.
+
+We compare our implementation against:
+
+- `std::unordered_map`
+- `std::map`
+
+We use different amounts of data and different input patterns to see how performance changes.
+
+The actual benchmark results and performance analysis are explained in `analysis.md`.
+
+## 12. Building and Running the Project
+
+We used CMake to organise and build the project.
+
+The `CMakeLists.txt` file tells CMake which source files to compile and which executables to create.
+
+To configure the project, we use:
+
+```bash
 cmake -S . -B build
+```
+
+To build everything:
+
+```bash
 cmake --build build
+```
 
-Then we can run the executable from the build folder. The exact executable location depends on the build configuration.
+To run the tests:
 
-9. Testing the Code
+```bash
+ctest --test-dir build --output-on-failure
+```
 
-We tested the main functions to make sure the Hash Map worked correctly.
+The project creates three executables:
 
-Some of the tests included:
+- `demo` – Runs the main Hash Map demonstration.
+- `tests` – Runs the unit tests.
+- `benchmark` – Runs the performance benchmarks.
 
-Adding students to the Hash Map.
+The executable location depends on the build configuration and compiler.
 
-Searching for a student using their ID.
+## 13. Conclusion
 
-Removing a student.
+Overall, we used C++ to create our own Hash Map using separate chaining.
 
-Adding two students whose IDs produce the same bucket.
+We implemented the main operations and added extra features such as automatic resizing, rehashing and load factor calculations.
 
-Updating a student name when the same ID is inserted again.
-
-Searching for an ID that does not exist.
-
-Removing one student from a bucket containing multiple students.
-
-These tests helped us check that the main operations worked and that collisions were handled correctly.
-
-10. Conclusion
-
-Overall, we used C++ to create a simple Hash Map with separate chaining. We divided the code into different files to make the project easier to understand and maintain.
-
-The program supports inserting, searching, removing and displaying student records. We also tested collisions and duplicate IDs to check that the Hash Map behaved as expected.
+We also created separate tests and benchmarks to check how the Hash Map works and compare its performance with other data structures.
